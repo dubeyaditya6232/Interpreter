@@ -1,17 +1,15 @@
-import React, { useState, useEffect } from "react";
-import { Box, IconButton, Typography } from "@mui/material";
+import React, { useState, useEffect, useRef } from "react";
+import { Box, Grid2 as Grid, IconButton, Typography } from "@mui/material";
 import { Mic, Stop } from "@mui/icons-material";
 
 import axios from "axios";
 
 const App = () => {
-  const [text, setText] = useState('');
+  const [text, setText] = useState(null);
   const [isListening, setIsListening] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
   const [recognition, setRecognition] = useState(null);
-  const [audioSummarization, setAudioSummarization] = useState('');
-
-  console.log(import.meta.env)
+  const [audioSummarization, setAudioSummarization] = useState(null);
+  const intervalRef = useRef(null);
 
   useEffect(() => {
     // Check browser support for SpeechRecognition and initialize it
@@ -36,7 +34,6 @@ const App = () => {
       };
 
       recognitionInstance.onend = () => {
-        setIsRecording(false);
         setIsListening(false);
         console.log("Recognition ended. Ready to restart.");
       };
@@ -50,8 +47,9 @@ const App = () => {
   // Start speech recognition
   const startListening = () => {
     if (recognition) {
+      setText('');
+      console.log("Recognition started....setting isListening to true");
       setIsListening(true);
-      setIsRecording(true);
       recognition.start();
     }
   };
@@ -59,6 +57,7 @@ const App = () => {
   // Stop speech recognition
   const stopListening = () => {
     if (recognition) {
+      console.log("Recognition stopped....setting isListening to false");
       recognition.stop();
       setIsListening(false);
     }
@@ -77,16 +76,22 @@ const App = () => {
       );
       const data = response.data;
       console.log(data);
-      setAudioSummarization(data);
+      setAudioSummarization(data.insights);
     } catch (error) {
       console.error("Error:", error);
     }
   };
 
   useEffect(() => {
-    const interval = setInterval(getAudioSummarization, 15000);
-    return () => clearInterval(interval);
-  }, []);
+    if (isListening) {
+      console.log("Interval started");
+      intervalRef.current = setInterval(getAudioSummarization, 15000);
+    } else {
+      console.log("Listening stopped. Interval cleared");
+      clearInterval(intervalRef.current);
+    }
+    return () => clearInterval(intervalRef.current);
+  }, [isListening]);
 
   return (
     <Box
@@ -104,7 +109,7 @@ const App = () => {
     >
       <h1>Audio Recorder</h1>
       <Box>
-        {!isRecording ? (
+        {!isListening ? (
           <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
             <IconButton color="primary" onClick={startListening} disabled={isListening}>
               <Mic />
@@ -120,15 +125,27 @@ const App = () => {
           </Box>
         )}
       </Box>
-      {audioSummarization && (
-        <>
-          <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-            <h3>Translation:</h3>
-          </Box>
-          <Box>
-            <Typography>{audioSummarization}</Typography>
-          </Box>
-        </>
+      {text && (
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <Box sx={{ maxHeight: "20vh", overflowY: "auto", scrollbarWidth: "none" }}>
+              <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+                <h3>Translation:</h3>
+              </Box>
+              {/* <Typography>{text}</Typography> */}
+              <Typography>There is a directed graph of end notes with each node labeled from zero to north -1. The graph is represented by a zero index to the integer array. The graph I is an integer array of nodes adjacent to node I. Meaning there is an age from not I to each node in graph I. A note is a terminal load if there are no outgoing edges. A node is a safe node if every possible pass starting from that node leads to a terminal node or another safe node.</Typography>
+            </Box>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <Box>
+              <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+                <h3>Explanation:</h3>
+              </Box>
+              {/* <Typography>{audioSummarization}</Typography> */}
+              <Typography>There is a directed graph of end notes with each node labeled from zero to north -1. The graph is represented by a zero index to the integer array. The graph I is an integer array of nodes adjacent to node I. Meaning there is an age from not I to each node in graph I. A note is a terminal load if there are no outgoing edges. A node is a safe node if every possible pass starting from that node leads to a terminal node or another safe node.</Typography>
+            </Box>
+          </Grid>
+        </Grid>
       )}
     </Box>
   );
