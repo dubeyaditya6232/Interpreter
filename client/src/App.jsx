@@ -132,8 +132,8 @@ const App = () => {
               <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
                 <h3>Translation:</h3>
               </Box>
-              {/* <Typography>{text}</Typography> */}
-              <Typography>There is a directed graph of end notes with each node labeled from zero to north -1. The graph is represented by a zero index to the integer array. The graph I is an integer array of nodes adjacent to node I. Meaning there is an age from not I to each node in graph I. A note is a terminal load if there are no outgoing edges. A node is a safe node if every possible pass starting from that node leads to a terminal node or another safe node.</Typography>
+              <Typography>{text}</Typography>
+              {/* <Typography>There is a directed graph of end notes with each node labeled from zero to north -1. The graph is represented by a zero index to the integer array. The graph I is an integer array of nodes adjacent to node I. Meaning there is an age from not I to each node in graph I. A note is a terminal load if there are no outgoing edges. A node is a safe node if every possible pass starting from that node leads to a terminal node or another safe node.</Typography> */}
             </Box>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
@@ -141,8 +141,8 @@ const App = () => {
               <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
                 <h3>Explanation:</h3>
               </Box>
-              {/* <Typography>{audioSummarization}</Typography> */}
-              <Typography>There is a directed graph of end notes with each node labeled from zero to north -1. The graph is represented by a zero index to the integer array. The graph I is an integer array of nodes adjacent to node I. Meaning there is an age from not I to each node in graph I. A note is a terminal load if there are no outgoing edges. A node is a safe node if every possible pass starting from that node leads to a terminal node or another safe node.</Typography>
+              <Typography>{audioSummarization}</Typography>
+              {/* <Typography>There is a directed graph of end notes with each node labeled from zero to north -1. The graph is represented by a zero index to the integer array. The graph I is an integer array of nodes adjacent to node I. Meaning there is an age from not I to each node in graph I. A note is a terminal load if there are no outgoing edges. A node is a safe node if every possible pass starting from that node leads to a terminal node or another safe node.</Typography> */}
             </Box>
           </Grid>
         </Grid>
