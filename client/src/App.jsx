@@ -9,6 +9,9 @@ const App = () => {
   const [isListening, setIsListening] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recognition, setRecognition] = useState(null);
+  const [audioSummarization, setAudioSummarization] = useState('');
+
+  console.log(import.meta.env)
 
   useEffect(() => {
     // Check browser support for SpeechRecognition and initialize it
@@ -64,7 +67,7 @@ const App = () => {
   const getAudioSummarization = async () => {
     try {
       const response = await axios.post(
-        process.env.REACT_APP_SERVER_URL,
+        import.meta.env.VITE_SERVER_URL,
         { text },
         {
           headers: {
@@ -74,6 +77,7 @@ const App = () => {
       );
       const data = response.data;
       console.log(data);
+      setAudioSummarization(data);
     } catch (error) {
       console.error("Error:", error);
     }
@@ -116,13 +120,13 @@ const App = () => {
           </Box>
         )}
       </Box>
-      {text && (
+      {audioSummarization && (
         <>
           <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-            <h3>Recorded Audio:</h3>
+            <h3>Translation:</h3>
           </Box>
           <Box>
-            <Typography>{text}</Typography>
+            <Typography>{audioSummarization}</Typography>
           </Box>
         </>
       )}
