@@ -10,7 +10,8 @@ const App = () => {
   const [recognition, setRecognition] = useState(null);
   const [audioSummarization, setAudioSummarization] = useState(null);
   const intervalRef = useRef(null);
-
+  const textRef = useRef(null);
+  let transcript = '';
   useEffect(() => {
     // Check browser support for SpeechRecognition and initialize it
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -22,7 +23,7 @@ const App = () => {
       recognitionInstance.interimResults = true; // Show interim results
 
       recognitionInstance.onresult = (event) => {
-        const transcript = Array.from(event.results)
+        transcript = Array.from(event.results)
           .map(result => result[0].transcript)
           .join(' ');
         setText(transcript);
@@ -47,7 +48,6 @@ const App = () => {
   // Start speech recognition
   const startListening = () => {
     if (recognition) {
-      setText('');
       console.log("Recognition started....setting isListening to true");
       setIsListening(true);
       recognition.start();
@@ -65,33 +65,37 @@ const App = () => {
 
   const getAudioSummarization = async () => {
     try {
-      const response = await axios.post(
-        import.meta.env.VITE_SERVER_URL,
-        { text },
-        {
-          headers: {
-            "Content-Type": "application/json"
+      const newText = transcript.replace(textRef.current, '');
+      console.log({ text, newText, prevText: textRef.current, transcript });
+      textRef.current = newText;
+      if (newText === '') {
+        console.log("No new text to summarize");
+        transcript = '';
+        return;
+      }
+      else {
+        const response = await axios.post(
+          import.meta.env.VITE_SERVER_URL,
+          { text: newText },
+          {
+            headers: {
+              "Content-Type": "application/json"
+            }
           }
-        }
-      );
-      const data = response.data;
-      console.log(data);
-      setAudioSummarization(data.insights);
+        );
+        const data = response.data;
+        console.log(data);
+        setAudioSummarization(prevData => prevData + "\n\n" + data.insights);
+      }
     } catch (error) {
       console.error("Error:", error);
     }
   };
 
   useEffect(() => {
-    if (isListening) {
-      console.log("Interval started");
-      intervalRef.current = setInterval(getAudioSummarization, 15000);
-    } else {
-      console.log("Listening stopped. Interval cleared");
-      clearInterval(intervalRef.current);
-    }
+    intervalRef.current = setInterval(getAudioSummarization, 7000);
     return () => clearInterval(intervalRef.current);
-  }, [isListening]);
+  }, []);
 
   return (
     <Box
@@ -128,21 +132,19 @@ const App = () => {
       {text && (
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <Box sx={{ maxHeight: "20vh", overflowY: "auto", scrollbarWidth: "none" }}>
-              <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-                <h3>Translation:</h3>
-              </Box>
+            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+              <h3>Translation</h3>
+            </Box>
+            <Box sx={{ maxHeight: "30vh", overflowY: "auto", scrollbarWidth: "none", minWidth: "100%" }}>
               <Typography>{text}</Typography>
-              {/* <Typography>There is a directed graph of end notes with each node labeled from zero to north -1. The graph is represented by a zero index to the integer array. The graph I is an integer array of nodes adjacent to node I. Meaning there is an age from not I to each node in graph I. A note is a terminal load if there are no outgoing edges. A node is a safe node if every possible pass starting from that node leads to a terminal node or another safe node.</Typography> */}
             </Box>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <Box>
-              <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-                <h3>Explanation:</h3>
-              </Box>
+            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+              <h3>Explanation</h3>
+            </Box>
+            <Box sx={{ maxHeight: "30vh", overflowY: "auto", scrollbarWidth: "none", minWidth: "100%" }}>
               <Typography>{audioSummarization}</Typography>
-              {/* <Typography>There is a directed graph of end notes with each node labeled from zero to north -1. The graph is represented by a zero index to the integer array. The graph I is an integer array of nodes adjacent to node I. Meaning there is an age from not I to each node in graph I. A note is a terminal load if there are no outgoing edges. A node is a safe node if every possible pass starting from that node leads to a terminal node or another safe node.</Typography> */}
             </Box>
           </Grid>
         </Grid>
