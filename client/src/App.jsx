@@ -10,7 +10,8 @@ const App = () => {
   const [recognition, setRecognition] = useState(null);
   const [audioSummarization, setAudioSummarization] = useState(null);
   const intervalRef = useRef(null);
-  const textRef = useRef(null);
+  const textRef = useRef('');
+
   let transcript = '';
   useEffect(() => {
     // Check browser support for SpeechRecognition and initialize it
@@ -36,6 +37,7 @@ const App = () => {
 
       recognitionInstance.onend = () => {
         setIsListening(false);
+        clearInterval(intervalRef.current);
         console.log("Recognition ended. Ready to restart.");
       };
 
@@ -65,15 +67,15 @@ const App = () => {
 
   const getAudioSummarization = async () => {
     try {
-      const newText = transcript.replace(textRef.current, '');
+      const newText = transcript.substring(textRef.current.length);
       console.log({ text, newText, prevText: textRef.current, transcript });
-      textRef.current = newText;
       if (newText === '') {
         console.log("No new text to summarize");
         transcript = '';
         return;
       }
       else {
+        textRef.current = textRef.current.concat(newText);
         const response = await axios.post(
           import.meta.env.VITE_SERVER_URL,
           { text: newText },
