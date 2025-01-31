@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Box, Grid2 as Grid, IconButton, Typography } from "@mui/material";
 import { Mic, Stop } from "@mui/icons-material";
 
 import axios from "axios";
+import SpeechHistory from "./components/SpeechHistory";
 
 const App = () => {
   const [text, setText] = useState(null);
@@ -11,8 +12,10 @@ const App = () => {
   const [audioSummarization, setAudioSummarization] = useState(null);
   const intervalRef = useRef(null);
   const textRef = useRef('');
+  const transcriptRef = useRef('');
+  const [chunks, setChunks] = useState([]);
+  const [keyWords, setKeyWords] = useState([]);
 
-  let transcript = '';
   useEffect(() => {
     // Check browser support for SpeechRecognition and initialize it
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -24,10 +27,10 @@ const App = () => {
       recognitionInstance.interimResults = true; // Show interim results
 
       recognitionInstance.onresult = (event) => {
-        transcript = Array.from(event.results)
+        transcriptRef.current = Array.from(event.results)
           .map(result => result[0].transcript)
           .join(' ');
-        setText(transcript);
+        setText(transcriptRef.current);
       };
 
       recognitionInstance.onerror = (event) => {
@@ -52,6 +55,8 @@ const App = () => {
     if (recognition) {
       console.log("Recognition started....setting isListening to true");
       setIsListening(true);
+      setChunks([]);
+      intervalRef.current = setInterval(getKeyWords, 7000);
       recognition.start();
     }
   };
@@ -65,19 +70,68 @@ const App = () => {
     }
   };
 
-  const getAudioSummarization = async () => {
+  const getKeyWords = async () => {
     try {
-      const newText = transcript.substring(textRef.current.length);
-      console.log({ text, newText, prevText: textRef.current, transcript });
+      const newText = transcriptRef.current.substring(textRef.current.length);
+      console.log({ text, newText, prevText: textRef.current, transcript: transcriptRef.current });
       if (newText === '') {
-        console.log("No new text to summarize");
-        transcript = '';
+        console.log("No new text to extract key words");
+        transcriptRef.current = '';
         return;
       }
       else {
         textRef.current = textRef.current.concat(newText);
         const response = await axios.post(
-          import.meta.env.VITE_SERVER_URL,
+          `${import.meta.env.VITE_SERVER_URL}/get_keywords`,
+          { text: newText },
+          {
+            headers: {
+              "Content-Type": "application/json"
+            }
+          }
+        );
+        const data = response.data;
+        console.log(data);
+        setKeyWords(data.keywords);
+        setChunks(prevChunks => [...prevChunks, { "text": newText, "keywords": data.keywords, "timeStamp": new Date().toLocaleTimeString() }]);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  }
+
+  const getKeyWordSummarization = async (keys) => {
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_SERVER_URL}/get_info_on_keyword`,
+        { keyword: keys },
+        {
+          headers: {
+            "Content-Type": "application/json"
+          }
+        }
+      );
+      const data = response.data;
+      console.log(data);
+      setAudioSummarization(data.information);
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  const getAudioSummarization = async () => {
+    try {
+      const newText = transcriptRef.current.substring(textRef.current.length);
+      console.log({ text, newText, prevText: textRef.current, transcript: transcriptRef.current });
+      if (newText === '') {
+        console.log("No new text to summarize");
+        transcriptRef.current = '';
+        return;
+      }
+      else {
+        textRef.current = textRef.current.concat(newText);
+        const response = await axios.post(
+          `${import.meta.env.VITE_SERVER_URL}/get_insights`,
           { text: newText },
           {
             headers: {
@@ -95,7 +149,7 @@ const App = () => {
   };
 
   useEffect(() => {
-    intervalRef.current = setInterval(getAudioSummarization, 7000);
+    // intervalRef.current = setInterval(getKeyWords, 7000);
     return () => clearInterval(intervalRef.current);
   }, []);
 
@@ -104,17 +158,15 @@ const App = () => {
       style={{
         display: "flex",
         flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
         m: "2rem",
         width: "100%",
-        height: "50vh",
+        height: "96vh",
         minWidth: "320px",
-        minHeight: "97vh",
+        minHeight: "30vh",
       }}
     >
-      <h1>Audio Recorder</h1>
-      <Box>
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column" }}>
+        <Typography variant="h4">Audio Recorder</Typography>
         {!isListening ? (
           <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
             <IconButton color="primary" onClick={startListening} disabled={isListening}>
@@ -137,16 +189,30 @@ const App = () => {
             <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
               <h3>Translation</h3>
             </Box>
-            <Box sx={{ maxHeight: "30vh", overflowY: "auto", scrollbarWidth: "none", minWidth: "100%" }}>
+            <Box sx={{ maxHeight: "80vh", overflowY: "auto", scrollbarWidth: "none", minWidth: "100%" }}>
               <Typography>{text}</Typography>
+            </Box>
+            <Box>
+              <Typography>Important Keywords</Typography>
+              <SpeechHistory
+                chunks={chunks}
+                getKeyWordSummarization={getKeyWordSummarization}
+              />
             </Box>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
               <h3>Explanation</h3>
             </Box>
-            <Box sx={{ maxHeight: "30vh", overflowY: "auto", scrollbarWidth: "none", minWidth: "100%" }}>
-              <Typography>{audioSummarization}</Typography>
+            <Box sx={{ maxHeight: "80vh", overflowY: "auto", scrollbarWidth: "none", minWidth: "100%" }}>
+              {
+                audioSummarization?.map((data, index) => (
+                  <Box key={index}>
+                    <Typography variant="h6">{data.topic}</Typography>
+                    <Typography>{data.point}</Typography>
+                  </Box>
+                ))
+              }
             </Box>
           </Grid>
         </Grid>
